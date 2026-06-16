@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>찾아라! 우리 아이 퍼즐</title>
+<style>
+  :root{
+    --bg1:#fff0f6; --bg2:#ffe3f1; --panel:#ffffff; --ink:#7a3a5d;
+    --thick:#ff7bb5; --accent:#ff5fa2; --accent2:#ff9cc6;
+    --good:#36c08a; --bad:#ff5252; --shadow:0 8px 22px rgba(220,90,150,.22);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:radial-gradient(circle at 25% 0%,var(--bg1),var(--bg2));
+    min-height:100vh; color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; padding:14px 12px 34px;
+  }
+  h1{margin:4px 0 2px; font-size:clamp(24px,7vw,32px); text-align:center; display:flex; align-items:center; gap:8px;}
+  .tag{font-size:13px; color:#b56d92; margin-bottom:12px; text-align:center; line-height:1.6; max-width:430px;}
+  .tag b{color:var(--accent);}
+  .wrap{width:100%; max-width:430px;}
+
+  .setup{background:var(--panel); border-radius:20px; padding:14px; box-shadow:var(--shadow);
+    border:1px solid #ffd6e8; display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+  .avatar{width:66px; height:66px; border-radius:50%; flex:0 0 66px; cursor:pointer; position:relative;
+    background:#ffe3f1; display:flex; align-items:center; justify-content:center; font-size:30px;
+    border:3px solid var(--accent2); overflow:hidden;}
+  .avatar img{width:100%; height:100%; object-fit:cover;}
+  .avatar .cam{position:absolute; bottom:-2px; right:-2px; background:var(--accent); color:#fff;
+    width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px;
+    border:2px solid #fff;}
+  .setup .fields{flex:1; min-width:0;}
+  .setup label{font-size:11px; color:#b56d92; font-weight:700;}
+  .setup input[type=text]{width:100%; border:2px solid #ffd6e8; border-radius:12px; padding:9px 11px;
+    font-size:16px; color:var(--ink); margin-top:3px; outline:none;}
+  .setup input[type=text]:focus{border-color:var(--accent2);}
+  .setup .hint{font-size:11px; color:#cf90af; margin-top:5px;}
+
+  .topbar{display:flex; gap:8px; margin-bottom:10px;}
+  .stat{background:var(--panel); border-radius:14px; padding:8px 6px; flex:1; text-align:center;
+    box-shadow:var(--shadow); border:1px solid #ffd6e8;}
+  .stat .lbl{font-size:11px; color:#c07da0; letter-spacing:.3px;}
+  .stat .val{font-size:19px; font-weight:800; margin-top:1px;}
+  .diffbar{display:flex; gap:8px; margin-bottom:12px;}
+  .diffbar button{flex:1; border:none; border-radius:14px; padding:12px 4px; font-size:15px; font-weight:700;
+    background:#ffffffcc; color:#c75792; cursor:pointer; box-shadow:var(--shadow); border:1px solid #ffd6e8; transition:.15s;}
+  .diffbar button.active{background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff;}
+  .diffbar button:active{transform:translateY(1px);}
+
+  #boardWrap{position:relative;}
+  #board{width:100%; aspect-ratio:1/1; background:var(--thick); border-radius:18px;
+    display:grid; gap:0; padding:5px; box-shadow:var(--shadow); overflow:hidden;}
+  .cell{display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;
+    user-select:none; border:1px solid rgba(255,255,255,.5); transition:filter .1s; font-size:clamp(22px,7vw,40px);}
+  .cell:hover{filter:brightness(1.05);}
+  .cell.bt{border-top:3px solid #fff;} .cell.bb{border-bottom:3px solid #fff;}
+  .cell.bl{border-left:3px solid #fff;} .cell.br{border-right:3px solid #fff;}
+  .cell .face{width:80%; height:80%; border-radius:50%; object-fit:cover; border:3px solid #fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.2); animation:plop .25s ease;}
+  .cell .ph{animation:plop .25s ease;}
+  .cell .x{font-size:.55em; animation:plop .2s ease;}
+  @keyframes plop{0%{transform:scale(.3);}70%{transform:scale(1.12);}100%{transform:scale(1);}}
+  .cell.conflict{box-shadow:inset 0 0 0 4px var(--bad); border-radius:6px;}
+  .cell.conflict .face{border-color:var(--bad); animation:shake .35s;}
+  .cell.flash{animation:flash .6s ease;}
+  @keyframes flash{0%{background:#fff7a8!important;}100%{}}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
+
+  .tools{display:flex; gap:8px; margin-top:14px;}
+  .tools button{flex:1; border:none; border-radius:14px; padding:13px 4px; font-size:14px; font-weight:700;
+    background:var(--panel); color:#c75792; cursor:pointer; box-shadow:var(--shadow); border:1px solid #ffd6e8;
+    display:flex; flex-direction:column; align-items:center; gap:3px; transition:.12s;}
+  .tools button:active{transform:translateY(1px);}
+  .tools .ic{font-size:20px;}
+  .toggleRow{display:flex; gap:10px; margin-top:10px; justify-content:center; font-size:12px; color:#b56d92;}
+  .toggleRow label{display:flex; align-items:center; gap:5px; cursor:pointer;}
+
+  .back{position:fixed; top:12px; left:12px; z-index:15; text-decoration:none; background:var(--panel);
+    color:#c75792; font-size:13px; font-weight:700; padding:8px 12px; border-radius:12px;
+    box-shadow:var(--shadow); border:1px solid #ffd6e8;}
+  .back:active{transform:translateY(1px);}
+
+  .overlay{position:fixed; inset:0; background:rgba(180,60,120,.4); display:none; align-items:center;
+    justify-content:center; z-index:20; padding:20px;}
+  .overlay.show{display:flex;}
+  .card{background:var(--panel); border-radius:26px; padding:28px 24px; text-align:center; max-width:340px;
+    width:100%; box-shadow:0 20px 50px rgba(180,60,120,.4); animation:pop .4s ease;}
+  @keyframes pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .card .winface{width:96px; height:96px; border-radius:50%; object-fit:cover; border:5px solid var(--accent2);
+    margin-bottom:8px; box-shadow:0 6px 16px rgba(0,0,0,.2);}
+  .card .big{font-size:60px; margin-bottom:4px;}
+  .card h2{margin:6px 0; font-size:25px;}
+  .card p{margin:6px 0 18px; color:#b56d92;}
+  .card button{border:none; border-radius:16px; padding:13px 26px; font-size:16px; font-weight:800;
+    background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff; cursor:pointer;}
+  .confetti{position:fixed; top:-10px; width:10px; height:15px; z-index:25; pointer-events:none; border-radius:2px;}
+  #flash{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#7a3a5d; color:#fff;
+    padding:11px 20px; border-radius:22px; font-size:15px; font-weight:600; z-index:30;
+    box-shadow:0 6px 18px rgba(0,0,0,.25); transition:.3s; opacity:0; pointer-events:none;}
+
+  /* 사진 자르기 */
+  .cropOverlay{position:fixed; inset:0; background:rgba(120,40,80,.55); display:none; align-items:center;
+    justify-content:center; z-index:40; padding:18px;}
+  .cropOverlay.show{display:flex;}
+  .crop-card{background:var(--panel); border-radius:24px; padding:20px; width:100%; max-width:330px;
+    text-align:center; box-shadow:0 20px 50px rgba(150,40,90,.4);}
+  .crop-card h3{margin:2px 0 4px; font-size:19px; color:var(--ink);}
+  .crop-card .sub{font-size:12px; color:#b56d92; margin-bottom:12px;}
+  .crop-view{width:260px; height:260px; max-width:74vw; max-height:74vw; margin:0 auto; position:relative;
+    overflow:hidden; border-radius:16px; background:#eee; touch-action:none; cursor:grab;}
+  .crop-view:active{cursor:grabbing;}
+  .crop-view img{position:absolute; left:0; top:0; transform-origin:0 0; pointer-events:none;
+    user-select:none; -webkit-user-drag:none;}
+  .crop-ring{position:absolute; inset:0; pointer-events:none; border-radius:50%;
+    box-shadow:0 0 0 2000px rgba(255,240,248,.55); border:3px solid #fff;}
+  .crop-zoom{width:100%; margin:16px 0 2px; accent-color:var(--accent);}
+  .crop-zoom-lbl{font-size:11px; color:#b56d92;}
+  .crop-btns{display:flex; gap:10px; margin-top:10px;}
+  .crop-btns button{flex:1; border:none; border-radius:14px; padding:13px; font-size:15px; font-weight:800; cursor:pointer;}
+  .crop-cancel{background:#f3e0ea; color:#a85c84;}
+  .crop-ok{background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff;}
+</style>
+</head>
+<body>
+  <a class="back" href="puppy.html">← 게임 선택</a>
+  <h1 id="title">🔍 도연이를 찾아라 🌟</h1>
+  <div class="tag">가로줄·세로줄·<b>같은 색 칸</b>마다 한 명씩! 그리고 <b>서로 딱 붙으면 안 돼요</b> 🙅<br>칸을 톡 누르면 <b>❌ → 얼굴 → 빈칸</b> 순서로 바뀌어요</div>
+
+  <div class="wrap">
+    <div class="setup">
+      <div class="avatar" id="avatar">👶<div class="cam">📷</div></div>
+      <div class="fields">
+        <label>누구를 찾을까요?</label>
+        <input type="text" id="nameInput" value="도연" maxlength="10" placeholder="이름을 적어요">
+        <div class="hint" id="setupHint">동그란 사진을 눌러 얼굴을 등록해요 📷</div>
+      </div>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" hidden>
+
+    <div class="topbar">
+      <div class="stat"><div class="lbl">시간</div><div class="val" id="time">0:00</div></div>
+      <div class="stat"><div class="lbl" id="leftLbl">남은 인원</div><div class="val" id="left">0</div></div>
+      <div class="stat"><div class="lbl">힌트</div><div class="val" id="hintsLeft">3</div></div>
+    </div>
+
+    <div class="diffbar" id="diffbar">
+      <button data-d="easy" class="active">아주 쉬움</button>
+      <button data-d="medium">보통</button>
+      <button data-d="hard">도전!</button>
+    </div>
+
+    <div id="boardWrap"><div id="board"></div></div>
+
+    <div class="tools">
+      <button id="hintBtn"><span class="ic">🌟</span>힌트</button>
+      <button id="clearBtn"><span class="ic">🧹</span>다시 풀기</button>
+      <button id="newGame"><span class="ic">🔄</span>새 퍼즐</button>
+    </div>
+
+    <div class="toggleRow">
+      <label><input type="checkbox" id="autoErr" checked> 틀린 곳 빨갛게</label>
+      <label><input type="checkbox" id="soundOn" checked> 소리</label>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <img class="winface" id="winFace" alt="" style="display:none">
+      <div class="big" id="winEmoji">🎉</div>
+      <h2 id="ovTitle">다 찾았어요!</h2>
+      <p id="ovText"></p>
+      <button id="ovBtn">또 할래요! 🔄</button>
+    </div>
+  </div>
+  <div id="flash"></div>
+
+  <div class="cropOverlay" id="cropOverlay">
+    <div class="crop-card">
+      <h3>얼굴 맞추기 ✂️</h3>
+      <div class="sub">드래그로 옮기고, 아래 막대로 크게/작게 맞춰요</div>
+      <div class="crop-view" id="cropView">
+        <img id="cropImg" alt="">
+        <div class="crop-ring"></div>
+      </div>
+      <div class="crop-zoom-lbl">🔍 확대</div>
+      <input type="range" id="cropZoom" class="crop-zoom" min="1" max="3" step="0.01" value="1">
+      <div class="crop-btns">
+        <button class="crop-cancel" id="cropCancel">취소</button>
+        <button class="crop-ok" id="cropOk">이 얼굴로! ✅</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== 색상 영역 ===== */
+const COLORS=["#ffc9de","#ffe0b3","#fff3a8","#c8f0c0","#b8e8ff","#d9c8ff","#ffd0c0","#c0f0e0","#f0c8f0"];
+const PRAISE=["잘했어요! 🐰","멋져요! ⭐","좋아요! 🌈","최고예요! 🎈","대단해요! 🦄"];
+
+/* ===== 퍼즐 엔진 (퀸즈형) ===== */
+function genPerm(N){
+  const p=new Array(N).fill(-1), used=new Array(N).fill(false);
+  function bt(r){ if(r===N) return true;
+    const cols=[...Array(N).keys()].sort(()=>Math.random()-0.5);
+    for(const c of cols){ if(used[c]) continue; if(r>0 && Math.abs(c-p[r-1])<=1) continue;
+      p[r]=c; used[c]=true; if(bt(r+1)) return true; used[c]=false; p[r]=-1; }
+    return false; }
+  return bt(0)?p:null;
+}
+function growRegions(N,seeds,frozen){
+  // frozen 영역은 절대 커지지 않음(=1칸 유지). 일반 호출 시 frozen=undefined
+  const reg=new Array(N*N).fill(-1); seeds.forEach((s,i)=>reg[s]=i);
+  let un=N*N-seeds.length;
+  while(un>0){ const cands=[];
+    for(let idx=0;idx<N*N;idx++){ if(reg[idx]!==-1) continue;
+      const r=idx/N|0, c=idx%N, nb=[];
+      if(r>0&&reg[idx-N]!==-1&&reg[idx-N]!==frozen)nb.push(reg[idx-N]);
+      if(r<N-1&&reg[idx+N]!==-1&&reg[idx+N]!==frozen)nb.push(reg[idx+N]);
+      if(c>0&&reg[idx-1]!==-1&&reg[idx-1]!==frozen)nb.push(reg[idx-1]);
+      if(c<N-1&&reg[idx+1]!==-1&&reg[idx+1]!==frozen)nb.push(reg[idx+1]);
+      if(nb.length)cands.push([idx,nb]); }
+    if(!cands.length) return null;   // 더 못 키우면 실패 → 재시도
+    const [idx,nb]=cands[Math.floor(Math.random()*cands.length)];
+    reg[idx]=nb[Math.floor(Math.random()*nb.length)]; un--; }
+  return reg;
+}
+function countSolutions(N,reg,limit){
+  let cnt=0; const uc=new Array(N).fill(false), ur=new Array(N).fill(false);
+  function bt(row,prev){ if(cnt>=limit) return; if(row===N){ cnt++; return; }
+    for(let c=0;c<N;c++){ if(uc[c]) continue; if(prev>=0&&Math.abs(c-prev)<=1) continue;
+      const rg=reg[row*N+c]; if(ur[rg]) continue;
+      uc[c]=true; ur[rg]=true; bt(row+1,c); uc[c]=false; ur[rg]=false; } }
+  bt(0,-1); return cnt;
+}
+function generate(N,budgetMs,single){
+  // single=true 이면 반드시 1칸짜리 영역이 하나 이상 있도록 생성(아주 쉬움용)
+  const t0=Date.now();
+  while(Date.now()-t0<budgetMs){ const p=genPerm(N); if(!p) continue;
+    const seeds=p.map((c,r)=>r*N+c);
+    const frozen = single ? Math.floor(Math.random()*N) : undefined;
+    const reg=growRegions(N,seeds,frozen);
+    if(!reg) continue;
+    if(single){ let sz=0; for(const x of reg) if(x===frozen) sz++; if(sz!==1) continue; }
+    if(countSolutions(N,reg,2)===1){ const solution=new Array(N*N).fill(false);
+      seeds.forEach(s=>solution[s]=true); return {reg, solution}; } }
+  return null;
+}
+
+/* ===== 사운드 ===== */
+let actx=null;
+function beep(freq,dur,type,vol){ if(!state.sound) return;
+  try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||"sine"; o.frequency.value=freq; g.gain.value=vol||0.07;
+    o.connect(g); g.connect(actx.destination); const t=actx.currentTime; o.start(t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.12)); o.stop(t+(dur||0.12)); }catch(e){}
+}
+const snd={ place:()=>{beep(620,0.08,"triangle",0.08); setTimeout(()=>beep(880,0.09,"triangle",0.06),70);},
+  x:()=>beep(440,0.06,"sine",0.05), erase:()=>beep(330,0.07,"sine",0.05), bad:()=>beep(200,0.18,"sawtooth",0.06),
+  hint:()=>{beep(700,0.1,"square",0.05); setTimeout(()=>beep(1000,0.12,"square",0.05),90);},
+  win:()=>[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,0.2,"triangle",0.09),i*130)) };
+
+/* ===== 상태 ===== */
+const state={ N:4, reg:[], solution:[], cells:[], elems:[], diff:"easy",
+  hints:3, timer:null, startTime:0, won:false, sound:true, autoErr:true, photo:null, name:"도연" };
+const DIFF={easy:4, medium:5, hard:6};
+
+/* 한국어 조사: 받침 있으면 이름+"이", 없으면 그대로 → 항상 "를" */
+function objForm(name){ name=(name||"").trim()||"아이";
+  const ch=name.charCodeAt(name.length-1);
+  if(ch>=0xAC00&&ch<=0xD7A3 && (ch-0xAC00)%28!==0) return name+"이";
+  return name; }
+function updateTexts(){
+  const o=objForm(state.name);
+  document.getElementById("title").textContent=`🔍 ${o}를 찾아라 🌟`;
+  document.getElementById("leftLbl").textContent=`남은 ${o}`;
+  document.title=`${o}를 찾아라!`;
+}
+
+/* ===== 사진/이름 저장 ===== */
+function save(){ try{ localStorage.setItem("kids_name",state.name);
+  if(state.photo) localStorage.setItem("kids_photo",state.photo); }catch(e){} }
+function load(){ try{ const n=localStorage.getItem("kids_name"); const p=localStorage.getItem("kids_photo");
+  if(n) state.name=n; if(p) state.photo=p; }catch(e){} }
+
+function renderAvatar(){
+  const a=document.getElementById("avatar");
+  if(state.photo){ a.innerHTML=`<img src="${state.photo}" alt=""><div class="cam">📷</div>`;
+    document.getElementById("setupHint").textContent="사진을 바꾸려면 다시 눌러요 ✨"; }
+  else { a.innerHTML=`👶<div class="cam">📷</div>`;
+    document.getElementById("setupHint").textContent="동그란 사진을 눌러 얼굴을 등록해요 📷"; }
+}
+function pieceHTML(){ return state.photo ? `<img class="face" src="${state.photo}" alt="">`
+  : `<span class="ph" style="font-size:.95em">👶</span>`; }
+
+/* ===== DOM ===== */
+const board=document.getElementById("board");
+function buildBoard(){
+  const N=state.N;
+  board.style.gridTemplateColumns=`repeat(${N},1fr)`;
+  board.style.gridTemplateRows=`repeat(${N},1fr)`;
+  board.innerHTML=""; const els=[];
+  for(let i=0;i<N*N;i++){ const d=document.createElement("div");
+    d.className="cell"; const rg=state.reg[i]; d.style.background=COLORS[rg%COLORS.length];
+    const r=i/N|0, c=i%N;
+    if(r===0||state.reg[i-N]!==rg) d.classList.add("bt");
+    if(r===N-1||state.reg[i+N]!==rg) d.classList.add("bb");
+    if(c===0||state.reg[i-1]!==rg) d.classList.add("bl");
+    if(c===N-1||state.reg[i+1]!==rg) d.classList.add("br");
+    d.addEventListener("click",()=>onCell(i));
+    board.appendChild(d); els.push(d); }
+  state.elems=els;
+}
+function render(){
+  const N=state.N;
+  for(let i=0;i<N*N;i++){ const d=state.elems[i], v=state.cells[i]; d.classList.remove("conflict");
+    d.innerHTML = v===1 ? pieceHTML() : (v===2 ? `<span class="x">❌</span>` : ""); }
+  markConflicts(); updateStats();
+}
+function findConflicts(){
+  const N=state.N, bad=new Set(); const dogs=[];
+  for(let i=0;i<N*N;i++) if(state.cells[i]===1) dogs.push(i);
+  const rc={},cc={},gc={};
+  for(const i of dogs){ const r=i/N|0,c=i%N,g=state.reg[i];
+    (rc[r]=rc[r]||[]).push(i); (cc[c]=cc[c]||[]).push(i); (gc[g]=gc[g]||[]).push(i); }
+  const flag=a=>{ if(a.length>1) a.forEach(i=>bad.add(i)); };
+  Object.values(rc).forEach(flag); Object.values(cc).forEach(flag); Object.values(gc).forEach(flag);
+  for(const i of dogs){ const r=i/N|0,c=i%N;
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){ if(!dr&&!dc) continue;
+      const nr=r+dr,nc=c+dc; if(nr<0||nc<0||nr>=N||nc>=N) continue;
+      if(state.cells[nr*N+nc]===1){ bad.add(i); bad.add(nr*N+nc); } } }
+  return bad;
+}
+function markConflicts(){ if(!state.autoErr) return;
+  findConflicts().forEach(i=>state.elems[i].classList.add("conflict")); }
+function updateStats(){
+  const N=state.N, placed=state.cells.filter(v=>v===1).length;
+  document.getElementById("left").textContent=Math.max(N-placed,0);
+  document.getElementById("hintsLeft").textContent=state.hints;
+}
+
+/* ===== 인터랙션 ===== */
+function onCell(i){
+  if(state.won) return;
+  // 순환: 빈칸 → ❌ → 얼굴 → 빈칸
+  const v=state.cells[i];
+  if(v===0){ state.cells[i]=2; snd.x(); }
+  else if(v===2){ state.cells[i]=1; snd.place();
+    if(state.autoErr && findConflicts().has(i)){ snd.bad(); flashMsg("앗, 너무 가깝거나 겹쳤어요! 🙈"); } }
+  else { state.cells[i]=0; snd.erase(); }
+  render(); checkWin();
+}
+function useHint(){
+  if(state.hints<=0 || state.won) return;
+  const N=state.N, targets=[];
+  for(let i=0;i<N*N;i++) if(state.solution[i] && state.cells[i]!==1) targets.push(i);
+  if(!targets.length){ flashMsg("벌써 다 제자리에 있어요! 😊"); return; }
+  const i=targets[Math.floor(Math.random()*targets.length)];
+  state.cells[i]=1; state.hints--; snd.hint(); render();
+  state.elems[i].classList.add("flash"); checkWin();
+}
+function clearAll(){ if(state.won) return;
+  state.cells=new Array(state.N*state.N).fill(0); snd.erase(); render(); }
+
+function checkWin(){
+  const N=state.N, placed=[]; for(let i=0;i<N*N;i++) if(state.cells[i]===1) placed.push(i);
+  if(placed.length!==N) return;
+  if(findConflicts().size>0) return;
+  state.won=true; clearInterval(state.timer); snd.win(); confetti();
+  const o=objForm(state.name);
+  document.getElementById("ovTitle").textContent=`${o}를 다 찾았어요!`;
+  document.getElementById("ovText").textContent=`시간 ${document.getElementById("time").textContent} · ${PRAISE[Math.floor(Math.random()*PRAISE.length)]}`;
+  const wf=document.getElementById("winFace");
+  if(state.photo){ wf.src=state.photo; wf.style.display="block"; document.getElementById("winEmoji").style.display="none"; }
+  else { wf.style.display="none"; document.getElementById("winEmoji").style.display="block"; }
+  document.getElementById("overlay").classList.add("show");
+}
+
+/* ===== 메시지/효과 ===== */
+let msgTimer=null;
+function flashMsg(t){ const el=document.getElementById("flash"); el.textContent=t; el.style.opacity="1";
+  clearTimeout(msgTimer); msgTimer=setTimeout(()=>el.style.opacity="0",1700); }
+function confetti(){
+  const cols=["#ff5fa2","#ffd166","#36c08a","#4d96ff","#ff8a3d","#a06cd5","#ff9cc6"];
+  for(let i=0;i<110;i++){ const c=document.createElement("div"); c.className="confetti";
+    c.style.left=Math.random()*100+"vw"; c.style.background=cols[i%cols.length]; document.body.appendChild(c);
+    const dur=2+Math.random()*2, drift=(Math.random()-0.5)*220;
+    c.animate([{transform:"translate(0,0) rotate(0)",opacity:1},
+      {transform:`translate(${drift}px,105vh) rotate(${Math.random()*720}deg)`,opacity:.9}],
+      {duration:dur*1000,easing:"ease-in"}); setTimeout(()=>c.remove(),dur*1000); }
+}
+function startTimer(){ clearInterval(state.timer); state.startTime=Date.now();
+  state.timer=setInterval(()=>{ const s=Math.floor((Date.now()-state.startTime)/1000);
+    document.getElementById("time").textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; },1000); }
+
+/* ===== 새 퍼즐 ===== */
+function newGame(){
+  document.getElementById("overlay").classList.remove("show");
+  state.N=DIFF[state.diff];
+  const g=generate(state.N,3000, state.diff==="easy");
+  if(!g){ setTimeout(newGame,20); return; }
+  state.reg=g.reg; state.solution=g.solution;
+  state.cells=new Array(state.N*state.N).fill(0);
+  state.hints=3; state.won=false;
+  document.getElementById("time").textContent="0:00";
+  buildBoard(); render(); startTimer();
+}
+
+/* ===== 이벤트 ===== */
+document.getElementById("diffbar").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  document.querySelectorAll("#diffbar button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); state.diff=b.dataset.d; newGame();
+});
+document.getElementById("newGame").addEventListener("click",newGame);
+document.getElementById("ovBtn").addEventListener("click",newGame);
+document.getElementById("hintBtn").addEventListener("click",useHint);
+document.getElementById("clearBtn").addEventListener("click",clearAll);
+document.getElementById("autoErr").addEventListener("change",e=>{state.autoErr=e.target.checked; render();});
+document.getElementById("soundOn").addEventListener("change",e=>{state.sound=e.target.checked;});
+
+const nameInput=document.getElementById("nameInput");
+nameInput.addEventListener("input",e=>{ state.name=e.target.value; updateTexts(); save(); });
+
+const photoInput=document.getElementById("photoInput");
+document.getElementById("avatar").addEventListener("click",()=>photoInput.click());
+photoInput.addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>openCropper(ev.target.result);
+  reader.readAsDataURL(f);
+  photoInput.value="";
+});
+
+/* ===== 사진 자르기(크롭) ===== */
+const crop={ img:null, natW:0, natH:0, V:260, fit:1, zoom:1, tx:0, ty:0, drag:false, px:0, py:0 };
+const cropOverlay=document.getElementById("cropOverlay");
+const cropView=document.getElementById("cropView");
+const cropImg=document.getElementById("cropImg");
+const cropZoom=document.getElementById("cropZoom");
+
+function openCropper(dataURL){
+  const im=new Image();
+  im.onload=()=>{
+    crop.img=im; crop.natW=im.naturalWidth; crop.natH=im.naturalHeight;
+    cropImg.src=dataURL;
+    cropOverlay.classList.add("show");
+    crop.V=cropView.clientWidth || 260;
+    crop.fit=Math.max(crop.V/crop.natW, crop.V/crop.natH);
+    crop.zoom=1; cropZoom.value="1";
+    const k=crop.fit*crop.zoom;
+    crop.tx=(crop.V-crop.natW*k)/2; crop.ty=(crop.V-crop.natH*k)/2;
+    applyCrop();
+  };
+  im.src=dataURL;
+}
+function clampCrop(){
+  const k=crop.fit*crop.zoom, w=crop.natW*k, h=crop.natH*k;
+  crop.tx=Math.min(0, Math.max(crop.V-w, crop.tx));
+  crop.ty=Math.min(0, Math.max(crop.V-h, crop.ty));
+}
+function applyCrop(){
+  clampCrop();
+  const k=crop.fit*crop.zoom;
+  cropImg.style.transform=`translate(${crop.tx}px,${crop.ty}px) scale(${k})`;
+}
+cropView.addEventListener("pointerdown",e=>{ crop.drag=true; crop.px=e.clientX; crop.py=e.clientY;
+  try{cropView.setPointerCapture(e.pointerId);}catch(_){} });
+cropView.addEventListener("pointermove",e=>{ if(!crop.drag) return;
+  crop.tx+=e.clientX-crop.px; crop.ty+=e.clientY-crop.py; crop.px=e.clientX; crop.py=e.clientY; applyCrop(); });
+cropView.addEventListener("pointerup",()=>crop.drag=false);
+cropView.addEventListener("pointercancel",()=>crop.drag=false);
+cropZoom.addEventListener("input",e=>{
+  const kOld=crop.fit*crop.zoom;
+  const cx=(crop.V/2-crop.tx)/kOld, cy=(crop.V/2-crop.ty)/kOld;
+  crop.zoom=parseFloat(e.target.value);
+  const kNew=crop.fit*crop.zoom;
+  crop.tx=crop.V/2-cx*kNew; crop.ty=crop.V/2-cy*kNew;
+  applyCrop();
+});
+document.getElementById("cropCancel").addEventListener("click",()=>cropOverlay.classList.remove("show"));
+document.getElementById("cropOk").addEventListener("click",()=>{
+  const k=crop.fit*crop.zoom, side=crop.V/k;
+  const sx=(0-crop.tx)/k, sy=(0-crop.ty)/k;
+  const size=256, cv=document.createElement("canvas"); cv.width=size; cv.height=size;
+  const ctx=cv.getContext("2d");
+  ctx.drawImage(crop.img, sx, sy, side, side, 0, 0, size, size);
+  state.photo=cv.toDataURL("image/jpeg",0.85);
+  cropOverlay.classList.remove("show");
+  renderAvatar(); render(); save(); flashMsg("얼굴을 등록했어요! 📸");
+});
+
+/* ===== 시작 ===== */
+load();
+nameInput.value=state.name;
+updateTexts(); renderAvatar();
+newGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WOOFDOKU 🐶 게임 선택</title>
+<style>
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:radial-gradient(circle at 30% 0%,#fff4e6,#ffe0c7 55%,#ffd0b0);
+    min-height:100vh; color:#5b3a1e; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; padding:30px 16px;
+  }
+  .logo{font-size:clamp(40px,11vw,68px); font-weight:800; letter-spacing:1px; margin:0; text-align:center;
+    text-shadow:0 3px 0 rgba(0,0,0,.06);}
+  .sub{font-size:15px; color:#9a6a3d; margin:6px 0 32px; text-align:center;}
+  .paws{font-size:30px; margin-bottom:6px;}
+  .cards{display:flex; flex-wrap:wrap; gap:18px; justify-content:center; width:100%; max-width:760px;}
+  .card{flex:1 1 300px; max-width:350px; text-decoration:none; color:inherit;
+    background:#fffdfa; border-radius:24px; padding:26px 24px; box-shadow:0 10px 30px rgba(150,90,40,.2);
+    border:1px solid #f1ddc2; transition:.18s; display:flex; flex-direction:column; align-items:center; text-align:center;}
+  .card:hover{transform:translateY(-5px); box-shadow:0 16px 40px rgba(150,90,40,.28);}
+  .card .emoji{font-size:62px; margin-bottom:8px; line-height:1;}
+  .card h2{margin:4px 0; font-size:23px;}
+  .card .badge{font-size:12px; font-weight:700; color:#fff; padding:3px 11px; border-radius:20px; margin:6px 0 12px;}
+  .card.sudoku .badge{background:linear-gradient(180deg,#7fa0ff,#4d7bff);}
+  .card.queens .badge{background:linear-gradient(180deg,#ffb067,#ff8a3d);}
+  .card p{margin:0 0 18px; font-size:13.5px; color:#8a6647; line-height:1.65;}
+  .card .play{margin-top:auto; border:none; border-radius:14px; padding:12px 28px; font-size:15px; font-weight:700; color:#fff;}
+  .card.sudoku .play{background:linear-gradient(180deg,#7fa0ff,#4d7bff);}
+  .card.queens .play{background:linear-gradient(180deg,#ffb067,#ff8a3d);}
+  .card.kids .badge{background:linear-gradient(180deg,#ff9cc6,#ff5fa2);}
+  .card.kids .play{background:linear-gradient(180deg,#ff9cc6,#ff5fa2);}
+  .foot{margin-top:34px; font-size:12px; color:#a87a4c; text-align:center; line-height:1.6;}
+  .grid-mini{display:inline-grid; gap:2px; margin-top:4px;}
+</style>
+</head>
+<body>
+  <div class="paws">🐾 🐶 🐾</div>
+  <h1 class="logo">WOOFDOKU</h1>
+  <div class="sub">강아지와 함께 푸는 두뇌 퍼즐 — 원하는 게임을 골라보세요</div>
+
+  <div class="cards">
+    <a class="card kids" href="game-kids.html">
+      <div class="emoji">🔍👶</div>
+      <h2>○○이를 찾아라</h2>
+      <span class="badge">아이용 · 사진 등록</span>
+      <p>아이 <b>이름과 얼굴 사진</b>을 등록하면 그 얼굴로 즐기는 쉬운 퍼즐!<br>작은 보드(4×4~6×6)로 유아도 OK 🧸</p>
+      <span class="play">▶ 플레이</span>
+    </a>
+
+    <a class="card queens" href="game-queens.html">
+      <div class="emoji">🟧🐶</div>
+      <h2>강아지 두독</h2>
+      <span class="badge">논리 퍼즐 (MEOWDOKU식)</span>
+      <p>각 줄·칸·색깔 영역마다 강아지 한 마리.<br>강아지끼리는 <b>대각선 포함 맞닿을 수 없어요.</b></p>
+      <span class="play">▶ 플레이</span>
+    </a>
+
+    <a class="card sudoku" href="game-sudoku.html">
+      <div class="emoji">🔢🐶</div>
+      <h2>강아지 스도쿠</h2>
+      <span class="badge">숫자 퍼즐</span>
+      <p>가로·세로·3×3 박스마다 1~9를 한 번씩.<br>버튼 하나로 <b>숫자 ↔ 강아지</b> 표시를 바꿀 수 있어요.</p>
+      <span class="play">▶ 플레이</span>
+    </a>
+  </div>
+
+  <div class="foot">세 게임 모두 난이도 선택 · 힌트 · 타이머 · 사운드 지원 🐕<br>각 게임 화면 왼쪽 위 "← 게임 선택"으로 이곳에 돌아올 수 있어요.</div>
+</body>
+</html>
