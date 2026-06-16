@@ -87,6 +87,21 @@
   .crop-btns button{flex:1; border:none; border-radius:14px; padding:13px; font-size:15px; font-weight:800; cursor:pointer;}
   .crop-cancel{background:#f3e0ea; color:#a85c84;}
   .crop-ok{background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff;}
+  .crop-rot{width:100%; margin-top:8px; border:none; border-radius:12px; padding:10px; font-size:14px; font-weight:800;
+    background:#ffe6f4; color:#c75aa0; cursor:pointer;}
+  .crop-rot:active{transform:translateY(1px);}
+  .pcard .edit{position:absolute; top:8px; right:36px; font-size:13px; color:#c98fb4; background:none; border:none; cursor:pointer; padding:4px;}
+  .rankBtn{width:100%; margin-top:10px; border:none; border-radius:18px; padding:13px; font-size:15px; font-weight:800;
+    background:linear-gradient(180deg,#ffe08a,#ffb43f); color:#7a4a00; cursor:pointer; box-shadow:var(--shadow);}
+  .rankBtn:active{transform:translateY(1px);}
+  .ranklist{display:flex; flex-direction:column; gap:10px; margin:6px 0 16px; text-align:left;}
+  .rankrow{display:flex; align-items:center; gap:12px; background:#fff6fb; border:1px solid #ffd6ec; border-radius:16px; padding:10px 12px;}
+  .rankrow .rk{font-size:24px; width:30px; text-align:center; flex:0 0 30px;}
+  .rankrow .rface{width:44px; height:44px; border-radius:50%; flex:0 0 44px; display:flex; align-items:center; justify-content:center;
+    font-size:24px; background:linear-gradient(160deg,#ffd9ef,#ffc0e2); overflow:hidden; border:2px solid #fff;}
+  .rankrow .rface img{width:100%; height:100%; object-fit:cover;}
+  .rankrow .rn{font-weight:800; font-size:16px; color:#7a2f63;}
+  .rankrow .rm{font-size:12px; color:#b8559a; margin-top:2px;}
 
   /* ===== 플레이 화면 ===== */
   #play{display:none;}
@@ -160,6 +175,7 @@
     <div class="players" id="players"></div>
     <div class="emptyHint" id="emptyHint">아래 버튼으로 친구를 만들어요 (최대 3명) 🌷</div>
     <button class="addBtn" id="addBtn">＋ 새 친구 만들기</button>
+    <button class="rankBtn" id="rankBtn">🏆 친구 랭킹 보기</button>
   </div>
 
   <!-- ===== 플레이 화면 ===== -->
@@ -190,7 +206,7 @@
   <!-- 이름 입력 모달 -->
   <div class="modal" id="nameModal">
     <div class="box">
-      <h3>친구를 만들어요 🌸</h3>
+      <h3 id="modalTitle">친구를 만들어요 🌸</h3>
       <div class="navatar" id="navatar">📷<div class="cam">＋</div></div>
       <input type="file" id="pphotoInput" accept="image/*" hidden>
       <div class="phint">동그라미를 눌러 사진을 넣을 수 있어요 (선택)</div>
@@ -209,10 +225,21 @@
       <div class="sub">드래그로 옮기고, 막대로 크게/작게 맞춰요</div>
       <div class="crop-view" id="cropView"><img id="cropImg" alt=""><div class="crop-ring"></div></div>
       <input type="range" id="cropZoom" class="crop-zoom" min="1" max="3" step="0.01" value="1">
+      <button class="crop-rot" id="cropRot">🔄 회전</button>
       <div class="crop-btns">
         <button class="crop-cancel" id="cropCancel">취소</button>
         <button class="crop-ok" id="cropOk">이 얼굴로! ✅</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 친구 랭킹 -->
+  <div class="overlay" id="rankOverlay">
+    <div class="card">
+      <div class="big">🏆</div>
+      <h2>친구 랭킹</h2>
+      <div class="ranklist" id="rankList"></div>
+      <div class="btns"><button class="ghost" id="rankClose">닫기</button></div>
     </div>
   </div>
 
@@ -285,35 +312,63 @@ function renderHome(){
         <div class="pmeta"><span class="lv">레벨 ${p.level}</span>${best}</div>
       </div>
       <div class="go">▶</div>
+      <button class="edit" title="수정">✏️</button>
       <button class="del" title="삭제">✕</button>`;
-    div.addEventListener("click",e=>{ if(e.target.classList.contains("del")) return; startLevel(idx, p.level); });
+    div.addEventListener("click",e=>{ if(e.target.closest(".del")||e.target.closest(".edit")) return; startLevel(idx, p.level); });
     div.querySelector(".del").addEventListener("click",e=>{ e.stopPropagation();
       if(confirm(`'${p.name}' 친구를 지울까요?`)){ state.players.splice(idx,1); savePlayers(); renderHome(); } });
+    div.querySelector(".edit").addEventListener("click",e=>{ e.stopPropagation(); openEdit(idx); });
     playersEl.appendChild(div);
   });
   document.getElementById("emptyHint").style.display = state.players.length? "none":"block";
   document.getElementById("addBtn").style.display = state.players.length<3? "block":"none";
+  document.getElementById("rankBtn").style.display = state.players.length>=2? "block":"none";
 }
 function escapeHtml(s){ return (s+"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ===== 친구 추가 ===== */
 const nameModal=document.getElementById("nameModal");
 const nameInput=document.getElementById("nameInput");
-let tempPhoto=null;
+let tempPhoto=null, editIndex=-1;
 function renderNavatar(){ const a=document.getElementById("navatar");
   a.innerHTML = tempPhoto ? `<img src="${tempPhoto}" alt=""><div class="cam">＋</div>` : `📷<div class="cam">＋</div>`; }
 document.getElementById("addBtn").addEventListener("click",()=>{
-  nameInput.value=""; tempPhoto=null; renderNavatar(); nameModal.classList.add("show"); setTimeout(()=>nameInput.focus(),60); });
+  editIndex=-1; nameInput.value=""; tempPhoto=null; renderNavatar();
+  document.getElementById("modalTitle").textContent="친구를 만들어요 🌸";
+  document.getElementById("nameOk").textContent="만들기 ✨";
+  nameModal.classList.add("show"); setTimeout(()=>nameInput.focus(),60); });
+function openEdit(idx){
+  editIndex=idx; const p=state.players[idx];
+  nameInput.value=p.name; tempPhoto=p.photo||null; renderNavatar();
+  document.getElementById("modalTitle").textContent="친구 정보 바꾸기 ✏️";
+  document.getElementById("nameOk").textContent="저장 ✨";
+  nameModal.classList.add("show"); setTimeout(()=>nameInput.focus(),60);
+}
 document.getElementById("nameCancel").addEventListener("click",()=>nameModal.classList.remove("show"));
-document.getElementById("nameOk").addEventListener("click",addPlayer);
-nameInput.addEventListener("keydown",e=>{ if(e.key==="Enter") addPlayer(); });
-function addPlayer(){
+document.getElementById("nameOk").addEventListener("click",confirmPlayer);
+nameInput.addEventListener("keydown",e=>{ if(e.key==="Enter") confirmPlayer(); });
+function confirmPlayer(){
   const name=(nameInput.value||"").trim();
   if(!name){ nameInput.focus(); return; }
-  if(state.players.length>=3) return;
-  state.players.push({name, level:1, best:null, photo:tempPhoto});
-  tempPhoto=null;
+  if(editIndex>=0){ const p=state.players[editIndex]; p.name=name; p.photo=tempPhoto; }
+  else { if(state.players.length>=3) return; state.players.push({name, level:1, best:null, photo:tempPhoto}); }
+  editIndex=-1; tempPhoto=null;
   savePlayers(); nameModal.classList.remove("show"); renderHome();
+}
+/* 랭킹 */
+document.getElementById("rankBtn").addEventListener("click",()=>{ renderRank(); document.getElementById("rankOverlay").classList.add("show"); });
+document.getElementById("rankClose").addEventListener("click",()=>document.getElementById("rankOverlay").classList.remove("show"));
+function renderRank(){
+  const arr=state.players.map((p,i)=>({p,i}));
+  arr.sort((A,B)=> (B.p.level-A.p.level) || ((B.p.best??-1)-(A.p.best??-1)) );
+  const medal=["🥇","🥈","🥉"];
+  document.getElementById("rankList").innerHTML=arr.map((o,r)=>{
+    const p=o.p, face=p.photo?`<img src="${p.photo}" alt="">`:FACES[o.i%FACES.length];
+    return `<div class="rankrow"><div class="rk">${medal[r]||(r+1)}</div>`+
+      `<div class="rface">${face}</div>`+
+      `<div><div class="rn">${escapeHtml(p.name)}</div>`+
+      `<div class="rm">레벨 ${p.level} · ${p.best!=null?("기록 ⏱ "+fmt(p.best)):"기록 없음"}</div></div></div>`;
+  }).join("");
 }
 
 /* 사진 선택 → 크롭 */
@@ -322,21 +377,39 @@ document.getElementById("navatar").addEventListener("click",()=>pphotoInput.clic
 pphotoInput.addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=ev=>openCropper(ev.target.result); r.readAsDataURL(f); pphotoInput.value=""; });
 
-const crop={ img:null, natW:0, natH:0, V:260, fit:1, zoom:1, tx:0, ty:0, drag:false, px:0, py:0 };
+const crop={ img:null, baseImg:null, rot:0, natW:0, natH:0, V:260, fit:1, zoom:1, tx:0, ty:0, drag:false, px:0, py:0 };
 const cropOverlay=document.getElementById("cropOverlay");
 const cropView=document.getElementById("cropView");
 const cropImg=document.getElementById("cropImg");
 const cropZoom=document.getElementById("cropZoom");
-function openCropper(dataURL){
+function fitCenter(){
+  crop.V=cropView.clientWidth||260; crop.fit=Math.max(crop.V/crop.natW, crop.V/crop.natH);
+  crop.zoom=1; cropZoom.value="1";
+  const k=crop.fit*crop.zoom; crop.tx=(crop.V-crop.natW*k)/2; crop.ty=(crop.V-crop.natH*k)/2; applyCrop();
+}
+function buildRotated(){           // 회전 각도를 적용한 새 소스 생성
+  const b=crop.baseImg, r=((crop.rot%360)+360)%360;
+  const cw=(r%180===0)?b.naturalWidth:b.naturalHeight;
+  const ch=(r%180===0)?b.naturalHeight:b.naturalWidth;
+  const cv=document.createElement("canvas"); cv.width=cw; cv.height=ch;
+  const ctx=cv.getContext("2d"); ctx.translate(cw/2,ch/2); ctx.rotate(r*Math.PI/180);
+  ctx.drawImage(b, -b.naturalWidth/2, -b.naturalHeight/2);
   const im=new Image();
-  im.onload=()=>{
-    crop.img=im; crop.natW=im.naturalWidth; crop.natH=im.naturalHeight; cropImg.src=dataURL;
-    cropOverlay.classList.add("show");
-    crop.V=cropView.clientWidth||260; crop.fit=Math.max(crop.V/crop.natW, crop.V/crop.natH);
-    crop.zoom=1; cropZoom.value="1";
-    const k=crop.fit*crop.zoom; crop.tx=(crop.V-crop.natW*k)/2; crop.ty=(crop.V-crop.natH*k)/2; applyCrop();
+  im.onload=()=>{ crop.img=im; crop.natW=im.naturalWidth; crop.natH=im.naturalHeight; cropImg.src=im.src; fitCenter(); };
+  im.src=cv.toDataURL("image/jpeg",0.92);
+}
+function openCropper(dataURL){
+  const raw=new Image();
+  raw.onload=()=>{
+    const MAX=1000; let w=raw.naturalWidth, h=raw.naturalHeight;
+    const sc=Math.min(1, MAX/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(raw,0,0,w,h);
+    const base=new Image();
+    base.onload=()=>{ crop.baseImg=base; crop.rot=0; cropOverlay.classList.add("show"); buildRotated(); };
+    base.src=cv.toDataURL("image/jpeg",0.92);
   };
-  im.src=dataURL;
+  raw.src=dataURL;
 }
 function clampCrop(){ const k=crop.fit*crop.zoom, w=crop.natW*k, h=crop.natH*k;
   crop.tx=Math.min(0,Math.max(crop.V-w,crop.tx)); crop.ty=Math.min(0,Math.max(crop.V-h,crop.ty)); }
@@ -349,6 +422,7 @@ cropView.addEventListener("pointercancel",()=>crop.drag=false);
 cropZoom.addEventListener("input",e=>{ const kOld=crop.fit*crop.zoom;
   const cx=(crop.V/2-crop.tx)/kOld, cy=(crop.V/2-crop.ty)/kOld; crop.zoom=parseFloat(e.target.value);
   const kNew=crop.fit*crop.zoom; crop.tx=crop.V/2-cx*kNew; crop.ty=crop.V/2-cy*kNew; applyCrop(); });
+document.getElementById("cropRot").addEventListener("click",()=>{ if(!crop.baseImg) return; crop.rot=(crop.rot+90)%360; buildRotated(); });
 document.getElementById("cropCancel").addEventListener("click",()=>cropOverlay.classList.remove("show"));
 document.getElementById("cropOk").addEventListener("click",()=>{
   const k=crop.fit*crop.zoom, side=crop.V/k, sx=(0-crop.tx)/k, sy=(0-crop.ty)/k;
